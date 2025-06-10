@@ -32,21 +32,31 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s -
 def load_recipients_or_csv(file_path, visible_only=False):
     ext = Path(file_path).suffix.lower()
     if ext == '.csv':
-        return pd.read_csv(file_path)
+        df = pd.read_csv(file_path)
     elif ext in ['.xls', '.xlsx']:
         if not visible_only:
-            return pd.read_excel(file_path)
-        wb = load_workbook(file_path, data_only=True)
-        ws = wb.active
-        headers = [cell.value for cell in ws[1]]
-        visible_rows = [
-            [cell.value for cell in row]
-            for row in ws.iter_rows(min_row=2)
-            if not ws.row_dimensions[row[0].row].hidden
-        ]
-        return pd.DataFrame(visible_rows, columns=headers)
+            df = pd.read_excel(file_path)
+        else:
+            wb = load_workbook(file_path, data_only=True)
+            ws = wb.active
+            headers = [cell.value for cell in ws[1]]
+            visible_rows = [
+                [cell.value for cell in row]
+                for row in ws.iter_rows(min_row=2)
+                if not ws.row_dimensions[row[0].row].hidden
+            ]
+            df = pd.DataFrame(visible_rows, columns=headers)
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
+
+    return df
+
+def validate_recipient_columns(df):
+    """Ensure required columns are present in the loaded DataFrame."""
+    required = {"Email", "Salutation"}
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing column(s): {', '.join(missing)}")
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
@@ -441,7 +451,15 @@ def run_automailer(mode, recipients_path, exclusion_path, msg_template_path,
     if send_account is None:
         logger(f"⚠️ 找不到帳戶 {send_account_name}，將使用預設帳戶。")
     
-    recipients = load_recipients_or_csv(recipients_path, visible_only=True)
+    try:
+        recipients = load_recipients_or_csv(recipients_path, visible_only=True)
+        validate_recipient_columns(recipients)
+    except ValueError as e:
+        messagebox.showerror("檔案錯誤", str(e))
+        logger(f"收件人清單錯誤: {e}")
+        if finish_callback:
+            finish_callback(None, 0)
+        return
     exclusion_emails = []
     if exclusion_path and os.path.exists(exclusion_path):
         try:
