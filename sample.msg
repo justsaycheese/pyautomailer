@@ -1,5 +1,7 @@
 Subject: Template Example
 
-Dear [salutation],
-
+[salutation]
 This is a Template email body. Please customize it as needed.
+[image]
+
+[statement]
