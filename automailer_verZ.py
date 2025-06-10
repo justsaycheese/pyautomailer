@@ -30,6 +30,26 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s -
 # 📂 Utils
 # ─────────────────────────────
 def load_recipients_or_csv(file_path, visible_only=False):
+    """讀取收件者清單或 CSV 檔案。
+
+    Parameters
+    ----------
+    file_path : str or Path
+        檔案路徑，可為 CSV 或 Excel。
+    visible_only : bool, optional
+        只讀取未隱藏列，預設 ``False``。
+
+    Returns
+    -------
+    pandas.DataFrame
+        轉換後的資料表。
+
+    Raises
+    ------
+    ValueError
+        檔案類型不受支援時拋出。
+    """
+
     ext = Path(file_path).suffix.lower()
     if ext == '.csv':
         return pd.read_csv(file_path)
@@ -55,6 +75,19 @@ def get_base_dir():
         return Path(__file__).parent
 
 def load_embeds(embed_dir=None):
+    """載入內嵌圖片並產生隨機 CID。
+
+    Parameters
+    ----------
+    embed_dir : str or Path, optional
+        圖片資料夾，預設為程式目錄下的 ``embed``。
+
+    Returns
+    -------
+    dict
+        CID 與圖片路徑的對應表。
+    """
+
     if embed_dir is None:
         embed_dir = get_base_dir() / "embed"
     embed_dir.mkdir(exist_ok=True)
@@ -64,13 +97,42 @@ def load_embeds(embed_dir=None):
     }
 
 def load_attachments(attachment_dir=None):
+    """取得應附加的檔案清單。
+
+    Parameters
+    ----------
+    attachment_dir : str or Path, optional
+        附件資料夾路徑，預設為程式目錄下的 ``attachment``。
+
+    Returns
+    -------
+    list of Path
+        資料夾中所有檔案的絕對路徑。
+    """
+
     if attachment_dir is None:
         attachment_dir = get_base_dir() / "attachment"
     attachment_dir.mkdir(exist_ok=True)
     return [f.resolve() for f in attachment_dir.glob("*") if f.is_file()]
 
 def generate_image_html(embeds):
-    return ''.join(f'<img src="cid:{cid}" style="display:block; margin-bottom:10px;"><br>' for cid in embeds)
+    """由內嵌圖片產生 HTML 片段。
+
+    Parameters
+    ----------
+    embeds : dict
+        ``load_embeds`` 回傳的 CID 與路徑對應表。
+
+    Returns
+    -------
+    str
+        可以插入郵件中的 HTML 字串。
+    """
+
+    return ''.join(
+        f'<img src="cid:{cid}" style="display:block; margin-bottom:10px;">\n<br>'
+        for cid in embeds
+    )
 
 # ─────────────────────────────
 # 🖥️ GUI Class
@@ -429,6 +491,39 @@ class GUI:
 # ─────────────────────────────
 def run_automailer(mode, recipients_path, exclusion_path, msg_template_path,
                    progress_update, logger, embedded_images, real_attachments, pause_event, cancel_event, finish_callback, send_account_name):
+    """依照模式寄送郵件或儲存草稿。
+
+    Parameters
+    ----------
+    mode : str
+        "send" 為立即寄送，"draft" 代表存為草稿。
+    recipients_path : str or Path
+        收件人清單檔案路徑。
+    exclusion_path : str or Path
+        排除清單檔案路徑，若無可為 ``None``。
+    msg_template_path : str or Path
+        Outlook 郵件範本檔案路徑。
+    progress_update : callable
+        回報處理進度的函式。
+    logger : callable
+        用於記錄訊息的函式。
+    embedded_images : dict
+        內嵌圖片的 CID 與路徑對應表。
+    real_attachments : list of Path
+        需附加的檔案清單。
+    pause_event : threading.Event
+        控制暫停/繼續的事件物件。
+    cancel_event : threading.Event
+        取消流程時的事件物件。
+    finish_callback : callable
+        流程結束時呼叫的函式。
+    send_account_name : str
+        Outlook 帳戶顯示名稱。
+
+    Returns
+    -------
+    None
+    """
     
     outlook = win32.Dispatch('Outlook.Application')
     session = outlook.GetNamespace("MAPI")
