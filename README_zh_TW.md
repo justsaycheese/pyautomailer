@@ -44,3 +44,14 @@ python automailer_verZ.py
 ```
 
 啟動後在介面中選擇收件者名單、（可選）排除名單及郵件範本，亦可加入要內嵌的圖片或附檔。最後按下 **Start** 便會利用 Outlook 進行寄送或建立草稿。
+
+## 建立可執行檔
+若要打包成 Windows 執行檔並產生釋出壓縮檔，可執行：
+
+```bash
+python build_release.py
+```
+
+此指令會呼叫 `pyinstaller`（需先 `pip install pyinstaller`），
+完成後會產生 `release.zip`，其中包含 `automailer_verZ.exe`、
+預設的 `embed` 和 `attachment` 資料夾，以及範例檔 `sample.msg`。

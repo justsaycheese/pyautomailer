@@ -44,3 +44,14 @@ python automailer_verZ.py
 Select your recipient list, optional exclusion list, and message template from
 the interface. You can also choose images to embed and attachments to include.
 Finally click **Start** to send or draft emails using Outlook.
+
+## Building an Executable
+To package the program into a standalone Windows executable and prepare a release archive, run:
+
+```bash
+python build_release.py
+```
+
+The script relies on `pyinstaller`. Install it first with `pip install pyinstaller`.
+When complete, `release.zip` will contain `automailer_verZ.exe`, the default
+`embed` and `attachment` folders, and the example `sample.msg` file.
