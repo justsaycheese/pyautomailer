@@ -27,16 +27,20 @@ DELAY_DRAFT = 1
 LOG_FILE = "automailer_log.txt"
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
 
-# Patch RTFDE text extraction to ignore undecodable characters
-def _patched_decode_hex_char(item, codec):
-    if codec is None:
-        codec = 'CP1252'
-    try:
-        return item.decode(codec).encode()
-    except UnicodeDecodeError:
-        return item.decode(codec, errors='ignore').encode()
+def patch_rtfde_decode() -> None:
+    """Patch RTFDE to ignore undecodable hex characters."""
 
-rtf_te.decode_hex_char = _patched_decode_hex_char
+    def _patched_decode_hex_char(item: bytes, codec: str | None):
+        if codec is None:
+            codec = "CP1252"
+        try:
+            return item.decode(codec).encode()
+        except UnicodeDecodeError:
+            return item.decode(codec, errors="ignore").encode()
+
+    rtf_te.decode_hex_char = _patched_decode_hex_char
+
+patch_rtfde_decode()
 
 # ─────────────────────────────
 # 📂 Utils
