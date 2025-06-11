@@ -11,10 +11,10 @@
   - `pywin32`（僅 Outlook 模式需要）
   - `tkinter`（Windows 版 Python 內建）
 
-使用以下指令安裝所需套件（Outlook 模式才需安裝 pywin32）：
+使用以下指令安裝所需套件：
 
 ```bash
-pip install extract_msg pandas openpyxl pywin32
+pip install -r requirements.txt
 ```
 
 ## 準備資料
