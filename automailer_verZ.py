@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import smtplib
+import mimetypes
 import sys
 import threading
 import time
@@ -11,9 +12,23 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from tkinter import (END, Button, Frame, Label, OptionMenu, Scrollbar,
-                     StringVar, Text, Tk, Toplevel, filedialog, messagebox,
-                     scrolledtext, ttk)
+from tkinter import (
+    END,
+    Button,
+    Entry,
+    Frame,
+    Label,
+    OptionMenu,
+    Scrollbar,
+    StringVar,
+    Text,
+    Tk,
+    Toplevel,
+    filedialog,
+    messagebox,
+    scrolledtext,
+    ttk,
+)
 
 import extract_msg
 import pandas as pd
@@ -142,7 +157,13 @@ class SmtpBackend(EmailBackend):
 
         for cid, path in embedded_images.items():
             with open(path, "rb") as f:
-                img = MIMEImage(f.read())
+                data = f.read()
+            mime_type, _ = mimetypes.guess_type(path)
+            if mime_type and mime_type.startswith("image/"):
+                _, subtype = mime_type.split("/", 1)
+            else:
+                subtype = path.suffix.lstrip(".") or "png"
+            img = MIMEImage(data, _subtype=subtype)
             img.add_header("Content-ID", f"<{cid}>")
             msg_root.attach(img)
 
