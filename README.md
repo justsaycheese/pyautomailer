@@ -34,6 +34,9 @@ following placeholders which will be replaced when sending:
 - `[statement]` – replaced with a random closing statement.
 - `[image]` – replaced with embedded image HTML (if any images are selected).
 
+If the RTF content in the template contains bytes that cannot be decoded,
+the program will ignore those bytes to avoid runtime errors.
+
 ## Running
 Execute the GUI with:
 

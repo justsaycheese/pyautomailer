@@ -1,4 +1,5 @@
 import extract_msg
+import RTFDE.text_extraction as rtf_te
 import pandas as pd
 import win32com.client as win32
 import os
@@ -25,6 +26,21 @@ DELAY_SEND = 10
 DELAY_DRAFT = 1
 LOG_FILE = "automailer_log.txt"
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
+
+def patch_rtfde_decode() -> None:
+    """Patch RTFDE to ignore undecodable hex characters."""
+
+    def _patched_decode_hex_char(item: bytes, codec: str | None):
+        if codec is None:
+            codec = "CP1252"
+        try:
+            return item.decode(codec).encode()
+        except UnicodeDecodeError:
+            return item.decode(codec, errors="ignore").encode()
+
+    rtf_te.decode_hex_char = _patched_decode_hex_char
+
+patch_rtfde_decode()
 
 # ─────────────────────────────
 # 📂 Utils
@@ -471,7 +487,12 @@ def run_automailer(mode, recipients_path, exclusion_path, msg_template_path,
 
     msg = extract_msg.Message(msg_template_path)
     subject = msg.subject
-    html_body = msg.htmlBody.decode('utf-8', errors='ignore') if isinstance(msg.htmlBody, bytes) else msg.htmlBody
+    try:
+        raw_html_body = msg.htmlBody
+    except UnicodeDecodeError as e:
+        logger(f"HTML 解析失敗: {e}")
+        raw_html_body = None
+    html_body = raw_html_body.decode('utf-8', errors='ignore') if isinstance(raw_html_body, bytes) else (raw_html_body or '')
 
     image_html = generate_image_html(embedded_images)
 

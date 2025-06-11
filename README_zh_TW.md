@@ -36,6 +36,8 @@ pip install extract_msg pandas openpyxl pywin32
 - `[statement]` ─ 隨機結尾語
 - `[image]` ─ 內嵌圖片的 HTML（若有選擇圖片）
 
+若範本中的 RTF 內容包含無法解碼的位元組，程式會自動忽略該部分以避免錯誤。
+
 ## 執行方式
 在終端機輸入：
 
