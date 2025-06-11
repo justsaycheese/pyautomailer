@@ -11,7 +11,7 @@ This project provides a GUI tool for sending batches of emails via Outlook or an
 - `pywin32` (for Outlook mode on Windows)
 - `tkinter` (bundled with Python on Windows)
 
-Install dependencies with `pip install extract_msg pandas openpyxl pywin32`.
+Install dependencies with `pip install -r requirements.txt`.
 For SMTP mode no additional Windows packages are required.
 
 ## Preparing Data

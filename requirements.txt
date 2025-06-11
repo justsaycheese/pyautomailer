@@ -1,0 +1,4 @@
+extract_msg
+pandas
+openpyxl
+pywin32
