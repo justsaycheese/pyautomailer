@@ -1,6 +1,6 @@
 # Automailer
 
-This project provides a GUI tool for sending batches of emails via Outlook.
+This project provides a GUI tool for sending batches of emails via Outlook or any SMTP server.
 
 ## Requirements
 - Python 3.10+
@@ -8,10 +8,11 @@ This project provides a GUI tool for sending batches of emails via Outlook.
   - `extract_msg`
   - `pandas`
   - `openpyxl`
-  - `pywin32` (provides `win32com.client`)
-  - `tkinter` (bundled with Python on Windows)
+- `pywin32` (for Outlook mode on Windows)
+- `tkinter` (bundled with Python on Windows)
 
 Install dependencies with `pip install extract_msg pandas openpyxl pywin32`.
+For SMTP mode no additional Windows packages are required.
 
 ## Preparing Data
 ### Recipient List
@@ -46,4 +47,10 @@ python automailer_verZ.py
 
 Select your recipient list, optional exclusion list, and message template from
 the interface. You can also choose images to embed and attachments to include.
-Finally click **Start** to send or draft emails using Outlook.
+Choose **Outlook** or **SMTP** as the backend in the GUI.
+For SMTP you must provide the host, port and credentials.
+Finally click **Start** to send or draft emails.
+
+### Cross Platform
+Outlook mode only works on Windows with Outlook installed.
+SMTP mode works on any platform as long as you have network access to your mail server.
