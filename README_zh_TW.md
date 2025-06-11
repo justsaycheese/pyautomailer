@@ -1,6 +1,6 @@
 # Automailer
 
-此專案提供一個 GUI 工具，可透過 Outlook 批次寄送電子郵件。
+此專案提供一個 GUI 工具，可透過 Outlook 或任意 SMTP 伺服器批次寄送電子郵件。
 
 ## 系統需求
 - Python 3.10 以上
@@ -8,10 +8,10 @@
   - `extract_msg`
   - `pandas`
   - `openpyxl`
-  - `pywin32`（提供 `win32com.client`）
+  - `pywin32`（僅 Outlook 模式需要）
   - `tkinter`（Windows 版 Python 內建）
 
-使用以下指令安裝所需套件：
+使用以下指令安裝所需套件（Outlook 模式才需安裝 pywin32）：
 
 ```bash
 pip install extract_msg pandas openpyxl pywin32
@@ -45,4 +45,9 @@ pip install extract_msg pandas openpyxl pywin32
 python automailer_verZ.py
 ```
 
-啟動後在介面中選擇收件者名單、（可選）排除名單及郵件範本，亦可加入要內嵌的圖片或附檔。最後按下 **Start** 便會利用 Outlook 進行寄送或建立草稿。
+啟動後在介面中可選擇 **Outlook** 或 **SMTP** 模式。
+若使用 SMTP，請輸入主機、連接埠與登入資訊，再選擇收件者名單及郵件範本，按下 **Start** 即可寄送或存檔。
+
+### 跨平台說明
+Outlook 模式僅能在安裝 Outlook 的 Windows 系統使用。
+SMTP 模式則可在任何平台運作，只要能連上郵件伺服器。
