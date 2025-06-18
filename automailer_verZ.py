@@ -830,7 +830,8 @@ def run_automailer(
         else (raw_html_body or "")
     )
 
-    total = len(filtered)
+    cid_list = list(embedded_images)
+    image_html_all = generate_image_html(cid_list)
 
     """
     新增參數 cancel_event。每次迴圈開始前或 pause 時，都要檢查 cancel_event 
@@ -861,11 +862,23 @@ def run_automailer(
             salutation = row["Salutation"]
             statement = random.choice(CLOSING_STATEMENTS)
 
-            body = (
-                html_body.replace("[salutation]", salutation)
-                .replace("[statement]", statement)
+
+            body = html_body.replace("[salutation]", salutation).replace(
+                "[statement]", statement
             )
             body = replace_image_placeholders(body, embedded_images)
+
+            def repl(match):
+                idx = match.group(1)
+                if idx == "":
+                    return image_html_all
+                try:
+                    cid = cid_list[int(idx)]
+                except (ValueError, IndexError):
+                    return ""
+                return generate_image_html([cid])
+
+            body = re.sub(r"\[image(\d*)\]", repl, body)
 
             backend.send(
                 mode,
