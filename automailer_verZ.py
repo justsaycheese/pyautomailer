@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import smtplib
+import re
 import mimetypes
 import sys
 import threading
@@ -806,7 +807,8 @@ def run_automailer(
         else (raw_html_body or "")
     )
 
-    image_html = generate_image_html(embedded_images)
+    cid_list = list(embedded_images)
+    image_html_all = generate_image_html(cid_list)
 
     total = len(filtered)
 
@@ -839,11 +841,21 @@ def run_automailer(
             salutation = row["Salutation"]
             statement = random.choice(CLOSING_STATEMENTS)
 
-            body = (
-                html_body.replace("[salutation]", salutation)
-                .replace("[statement]", statement)
-                .replace("[image]", image_html)
+            body = html_body.replace("[salutation]", salutation).replace(
+                "[statement]", statement
             )
+
+            def repl(match):
+                idx = match.group(1)
+                if idx == "":
+                    return image_html_all
+                try:
+                    cid = cid_list[int(idx)]
+                except (ValueError, IndexError):
+                    return ""
+                return generate_image_html([cid])
+
+            body = re.sub(r"\[image(\d*)\]", repl, body)
 
             backend.send(
                 mode,
