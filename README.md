@@ -36,6 +36,7 @@ following placeholders which will be replaced when sending:
 - `[image]` – replaced with all embedded images.
 - `[image0]`, `[image1]`, ... – replaced with the first, second, etc. image.
 
+
 If the RTF content in the template contains bytes that cannot be decoded,
 the program will ignore those bytes to avoid runtime errors.
 

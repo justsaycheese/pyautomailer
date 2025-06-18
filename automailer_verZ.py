@@ -257,6 +257,29 @@ def generate_image_html(embeds):
     )
 
 
+def _single_image_html(cid: str) -> str:
+    """產生單一圖片的 HTML 片段"""
+    return f'<img src="cid:{cid}" style="display:block; margin-bottom:10px;"><br>'
+
+
+def replace_image_placeholders(html: str, embeds: dict[str, Path]) -> str:
+    """將 [image], [image0], [image1]... 等佔位符替換成相對應的圖片 HTML."""
+    keys = list(embeds.keys())
+
+    def repl(match: re.Match) -> str:
+        idx_str = match.group(1)
+        if idx_str == "":
+            # [image] -> 全部圖片
+            return "".join(_single_image_html(cid) for cid in keys)
+        idx = int(idx_str)
+        if 0 <= idx < len(keys):
+            return _single_image_html(keys[idx])
+        return ""
+
+    pattern = re.compile(r"\[image(\d*)\]")
+    return pattern.sub(repl, html)
+
+
 # ─────────────────────────────
 # 🖥️ GUI Class
 # ─────────────────────────────
@@ -810,8 +833,6 @@ def run_automailer(
     cid_list = list(embedded_images)
     image_html_all = generate_image_html(cid_list)
 
-    total = len(filtered)
-
     """
     新增參數 cancel_event。每次迴圈開始前或 pause 時，都要檢查 cancel_event 
     是否已被設置。設置就直接結束整個流程。
@@ -841,9 +862,11 @@ def run_automailer(
             salutation = row["Salutation"]
             statement = random.choice(CLOSING_STATEMENTS)
 
+
             body = html_body.replace("[salutation]", salutation).replace(
                 "[statement]", statement
             )
+            body = replace_image_placeholders(body, embedded_images)
 
             def repl(match):
                 idx = match.group(1)
