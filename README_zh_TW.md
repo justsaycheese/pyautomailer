@@ -35,6 +35,7 @@ pip install -r requirements.txt
 - `[salutation]` ─ 以名單中的稱呼取代
 - `[statement]` ─ 隨機結尾語
 - `[image]` ─ 內嵌圖片的 HTML（若有選擇圖片）
+- `[image0]`, `[image1]`... ─ 依選取順序插入對應的單張圖片
 
 若範本中的 RTF 內容包含無法解碼的位元組，程式會自動忽略該部分以避免錯誤。
 
