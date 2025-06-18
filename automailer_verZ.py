@@ -1,7 +1,6 @@
 import logging
 import os
 import random
-import re
 import smtplib
 import mimetypes
 import sys
@@ -255,29 +254,6 @@ def generate_image_html(embeds):
         f'<img src="cid:{cid}" style="display:block; margin-bottom:10px;"><br>'
         for cid in embeds
     )
-
-
-def _single_image_html(cid: str) -> str:
-    """產生單一圖片的 HTML 片段"""
-    return f'<img src="cid:{cid}" style="display:block; margin-bottom:10px;"><br>'
-
-
-def replace_image_placeholders(html: str, embeds: dict[str, Path]) -> str:
-    """將 [image], [image0], [image1]... 等佔位符替換成相對應的圖片 HTML."""
-    keys = list(embeds.keys())
-
-    def repl(match: re.Match) -> str:
-        idx_str = match.group(1)
-        if idx_str == "":
-            # [image] -> 全部圖片
-            return "".join(_single_image_html(cid) for cid in keys)
-        idx = int(idx_str)
-        if 0 <= idx < len(keys):
-            return _single_image_html(keys[idx])
-        return ""
-
-    pattern = re.compile(r"\[image(\d*)\]")
-    return pattern.sub(repl, html)
 
 
 # ─────────────────────────────
@@ -830,8 +806,9 @@ def run_automailer(
         else (raw_html_body or "")
     )
 
-    cid_list = list(embedded_images)
-    image_html_all = generate_image_html(cid_list)
+    image_html = generate_image_html(embedded_images)
+
+    total = len(filtered)
 
     """
     新增參數 cancel_event。每次迴圈開始前或 pause 時，都要檢查 cancel_event 
@@ -862,23 +839,11 @@ def run_automailer(
             salutation = row["Salutation"]
             statement = random.choice(CLOSING_STATEMENTS)
 
-
-            body = html_body.replace("[salutation]", salutation).replace(
-                "[statement]", statement
+            body = (
+                html_body.replace("[salutation]", salutation)
+                .replace("[statement]", statement)
+                .replace("[image]", image_html)
             )
-            body = replace_image_placeholders(body, embedded_images)
-
-            def repl(match):
-                idx = match.group(1)
-                if idx == "":
-                    return image_html_all
-                try:
-                    cid = cid_list[int(idx)]
-                except (ValueError, IndexError):
-                    return ""
-                return generate_image_html([cid])
-
-            body = re.sub(r"\[image(\d*)\]", repl, body)
 
             backend.send(
                 mode,
