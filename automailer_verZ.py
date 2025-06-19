@@ -2,7 +2,7 @@ import logging
 import os
 import random
 import smtplib
-import re
+import re, uuid, os
 import mimetypes
 import sys
 import threading
@@ -116,20 +116,34 @@ class OutlookBackend(EmailBackend):
         mail = self.outlook.CreateItem(0)
         if self.account:
             mail._oleobj_.Invoke(64209, 0, 8, 1, self.account)
+
+        mail.BodyFormat = 2          # olFormatHTML，先指定格式
         mail.Subject = subject
         mail.To = recipient
-        mail.HTMLBody = html_body
+
+        # 1️⃣ 先附上要嵌入的圖片
         for cid, path in embedded_images.items():
-            attach = mail.Attachments.Add(Source=str(path))
-            attach.PropertyAccessor.SetProperty(
-                "http://schemas.microsoft.com/mapi/proptag/0x3712001F", cid
+            attach = mail.Attachments.Add(
+                Source=str(path),
+                Type=1,    # olByValue
+                Position=0
             )
+            pa = attach.PropertyAccessor
+            pa.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", cid)   # CID
+            pa.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x7FFE000B", True)  # PR_ATTACHMENT_HIDDEN
+
+        # 2️⃣ 再放進 HTML 內容
+        mail.HTMLBody = html_body
+
+        # 3️⃣ 其餘一般附件最後附
         for file_path in attachments:
             mail.Attachments.Add(Source=str(file_path))
+
         if mode == "send":
             mail.Send()
         else:
             mail.Save()
+
 
 
 class SmtpBackend(EmailBackend):
@@ -230,14 +244,21 @@ def get_base_dir():
         return Path(sys.executable).parent
     else:
         return Path(__file__).parent
-
+    
+def safe_cid(stem: str) -> str:
+    """
+    將檔名主體轉成僅含大小寫英數、底線、連字號的安全 CID。
+    再加 8 碼隨機碼，確保全域唯一。
+    """
+    clean = re.sub(r'[^A-Za-z0-9_-]+', '_', stem)      # 空白、()、中文 → _
+    return f"{uuid.uuid4().hex[:8]}_{clean}"
 
 def load_embeds(embed_dir=None):
     if embed_dir is None:
         embed_dir = get_base_dir() / "embed"
     embed_dir.mkdir(exist_ok=True)
     return {
-        f"img_{random.randint(1000,9999)}_{f.stem}": f.resolve()
+        safe_cid(f.stem): f.resolve()                  # ← 改這行
         for f in embed_dir.glob("*")
         if f.suffix.lower() in [".png", ".jpg", ".jpeg", ".gif"]
     }
@@ -509,7 +530,7 @@ class GUI:
                 return
             # 產生跟 load_embeds 相同結構的 dict
             self.embed_paths = {
-                f"img_{random.randint(1000, 9999)}_{Path(p).stem}": Path(p)
+                safe_cid(Path(p).stem): Path(p)                  
                 for p in paths
             }
 
