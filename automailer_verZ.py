@@ -338,7 +338,8 @@ class GUI:
         # ──────────────── UI Frames ────────────────
         mode_frame = Frame(root, pady=5, padx=5, relief="groove", borderwidth=2)
         mode_frame.grid(row=0, column=0, columnspan=2, sticky="EW")
-        Label(mode_frame, text="寄件帳戶：").grid(row=0, column=0, sticky="w", pady=5)
+        self.account_label = Label(mode_frame, text="寄件帳戶：")
+        self.account_label.grid(row=0, column=0, sticky="w", pady=5)
 
         self.account_menu = OptionMenu(mode_frame, self.account_var, *accounts)
         self.account_menu.grid(row=0, column=1, sticky="W", pady=5)
@@ -511,8 +512,12 @@ class GUI:
         """切換寄信後端時顯示或隱藏 SMTP 設定欄位"""
         if choice == "SMTP":
             self.smtp_frame.grid()
+            self.account_menu.grid_remove()
+            self.account_label.grid_remove()
         else:
             self.smtp_frame.grid_remove()
+            self.account_menu.grid()
+            self.account_label.grid()
 
     def select_embed(self):
         if self.folder_mode:  # ▸ 資料夾模式
@@ -676,9 +681,14 @@ class GUI:
         )
         attachment_list = "\n".join([f"- {p.name}" for p in real_attachments]) or "無"
         statement_list = "\n".join(CLOSING_STATEMENTS)
+        if self.backend_var.get() == "Outlook":
+            account_disp = self.account_var.get()
+        else:
+            account_disp = self.smtp_user.get()
         confirm_message = f"""📂 檢查完畢，準備寄信：{self.mode_var.get()}
 
-寄件帳戶：{self.account_var.get()}
+寄件帳戶：{account_disp}
+寄件後端：{self.backend_var.get()}
 
 嵌入圖片:
 {embed_list}
@@ -699,6 +709,10 @@ class GUI:
         # 在開始之前，重置 cancel_event 並設定 pause_event
         self.cancel_event.clear()
         self.pause_event.set()
+
+        self.log(
+            f"📧 寄件帳戶：{account_disp} / 寄件後端：{self.backend_var.get()}"
+        )
 
         # 顯示暫停和取消按鈕
         self.pause_button.grid()  # 從隱藏狀態恢復
