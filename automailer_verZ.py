@@ -7,6 +7,8 @@ import mimetypes
 import sys
 import threading
 import time
+import json
+import pythoncom
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
@@ -244,6 +246,24 @@ def get_base_dir():
         return Path(sys.executable).parent
     else:
         return Path(__file__).parent
+
+SETTINGS_FILE = get_base_dir() / "settings.json"
+
+def load_settings_file():
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logging.error(f"Failed to load settings: {e}")
+    return {}
+
+def save_settings_file(data):
+    try:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logging.error(f"Failed to save settings: {e}")
     
 def safe_cid(stem: str) -> str:
     """
@@ -327,13 +347,42 @@ class GUI:
         if not accounts:
             accounts = ["(No Account Found)"]
         self.account_var = StringVar(root)
-        self.account_var.set(accounts[0])
-
         self.backend_var = StringVar(value="Outlook")
         self.smtp_host = StringVar(value="")
         self.smtp_port = StringVar(value="587")
         self.smtp_user = StringVar(value="")
         self.smtp_pass = StringVar(value="")
+
+        # 讀取設定檔並套用
+        cfg = load_settings_file()
+        self.mode_var.set(cfg.get("mode", self.mode_var.get()))
+        self.backend_var.set(cfg.get("backend", self.backend_var.get()))
+        acc = cfg.get("account")
+        self.account_var.set(acc if acc in accounts else accounts[0])
+        self.smtp_host.set(cfg.get("smtp_host", ""))
+        self.smtp_port.set(cfg.get("smtp_port", "587"))
+        self.smtp_user.set(cfg.get("smtp_user", ""))
+        self.smtp_pass.set(cfg.get("smtp_pass", ""))
+        self.recipient_file = cfg.get("recipient_file", "")
+        if self.recipient_file:
+            self.recipient_label.set(Path(self.recipient_file).name)
+        self.exclusion_file = cfg.get("exclusion_file", "")
+        if self.exclusion_file:
+            self.exclusion_label.set(Path(self.exclusion_file).name)
+        self.msg_template = cfg.get("msg_template", "")
+        if self.msg_template:
+            self.template_label.set(Path(self.msg_template).name)
+        embed_dir = cfg.get("embed_dir")
+        if embed_dir:
+            self.embed_dir = Path(embed_dir)
+            self.embed_paths = load_embeds(self.embed_dir)
+            self.embed_files.set(", ".join(p.name for p in self.embed_paths.values()) or "無檔案")
+        attachment_dir = cfg.get("attachment_dir")
+        if attachment_dir:
+            self.attachment_dir = Path(attachment_dir)
+            self.attachments = load_attachments(self.attachment_dir)
+            self.attachment_files.set(", ".join(p.name for p in self.attachments) or "無檔案")
+        saved_closing = cfg.get("closing_statements")
 
         # ──────────────── UI Frames ────────────────
         mode_frame = Frame(root, pady=5, padx=5, relief="groove", borderwidth=2)
@@ -461,7 +510,10 @@ class GUI:
         Label(root, text="結尾詞 (一行一個)").grid(row=5, column=0, columnspan=2)
         self.closing_text = scrolledtext.ScrolledText(root, height=7, width=50)
         self.closing_text.grid(row=6, column=0, columnspan=2)
-        self.closing_text.insert(END, "\n".join(CLOSING_STATEMENTS))
+        if saved_closing:
+            self.closing_text.insert(END, "\n".join(saved_closing))
+        else:
+            self.closing_text.insert(END, "\n".join(CLOSING_STATEMENTS))
 
         # ─── Pause/Resume 按鈕 & Cancel 按鈕（一開始先放位置，再隱藏） ───
         self.pause_button = Button(
@@ -496,6 +548,9 @@ class GUI:
         )
         self.progress_bar = ttk.Progressbar(root, length=300, mode="determinate")
         self.progress_bar.grid(row=11, column=0, columnspan=2, pady=5)
+
+        self.save_button = Button(root, text="💾 儲存設定", command=self.save_settings)
+        self.save_button.grid(row=12, column=0, columnspan=2, pady=5)
 
     def on_select_mode(self, choice):
         """當 OptionMenu 變動時呼叫；同步更新 folder_mode 與按鈕文字"""
@@ -718,6 +773,7 @@ class GUI:
         self.pause_button.grid()  # 從隱藏狀態恢復
         self.pause_button.config(text="暫停")
         self.cancel_button.grid()  # 從隱藏狀態恢復
+        self.save_button.grid_remove()
 
         # 啟動背景執行緒，傳入 pause_event 和 cancel_event
         threading.Thread(
@@ -768,6 +824,26 @@ class GUI:
         # 更新進度文字為已取消
         self.progress_label.set("❌ 已取消寄送")
 
+    def save_settings(self):
+        data = {
+            "mode": self.mode_var.get(),
+            "backend": self.backend_var.get(),
+            "account": self.account_var.get(),
+            "smtp_host": self.smtp_host.get(),
+            "smtp_port": self.smtp_port.get(),
+            "smtp_user": self.smtp_user.get(),
+            "smtp_pass": self.smtp_pass.get(),
+            "recipient_file": self.recipient_file,
+            "exclusion_file": self.exclusion_file,
+            "msg_template": self.msg_template,
+            "embed_dir": str(self.embed_dir or ""),
+            "attachment_dir": str(self.attachment_dir or ""),
+            "closing_statements": self.closing_text.get("1.0", END).strip().splitlines(),
+        }
+        save_settings_file(data)
+        self.log("✅ 設定已儲存")
+        messagebox.showinfo("設定", "設定已儲存")
+
     def update_progress(self, index, total, current_email):
         pct = int((index + 1) / total * 100)
         self.progress_label.set(f"{pct}% - 處理 {index + 1}/{total}: {current_email}")
@@ -778,11 +854,11 @@ class GUI:
         """流程跑完後，把暫停與取消按鈕隱藏掉。"""
         self.pause_button.grid_remove()
         self.cancel_button.grid_remove()
+        self.save_button.grid()
         # 可以更新進度文字表達「已完成」：
         finished_count = last_index + 1 if last_index is not None else total
         self.progress_label.set(f"✅ 全部寄送完成 {finished_count}/{total}")
-
-
+        
 # ─────────────────────────────
 # 🚀 Email Sending Logic
 # ─────────────────────────────
@@ -806,9 +882,12 @@ def run_automailer(
     smtp_pass,
 ):
 
-    if backend_type == "SMTP":
-        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
+    use_outlook = backend_type != "SMTP"
+    if use_outlook:
+        pythoncom.CoInitialize()
+        backend = OutlookBackend(send_account_name)
     else:
+        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
         backend = OutlookBackend(send_account_name)
 
     try:
@@ -911,7 +990,9 @@ def run_automailer(
 
     if finish_callback:
         finish_callback(last_index, total)
-
+        
+    if use_outlook:
+        pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     root = Tk()

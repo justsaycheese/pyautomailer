@@ -1,0 +1,15 @@
+{
+    "mode": "draft",
+    "backend": "Outlook",
+    "account": "",
+    "smtp_host": "",
+    "smtp_port": "587",
+    "smtp_user": "",
+    "smtp_pass": "",
+    "recipient_file": "",
+    "exclusion_file": "",
+    "msg_template": "",
+    "embed_dir": "",
+    "attachment_dir": "",
+    "closing_statements": []
+}
