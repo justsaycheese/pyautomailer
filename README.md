@@ -52,6 +52,11 @@ Choose **Outlook** or **SMTP** as the backend in the GUI.
 For SMTP you must provide the host, port and credentials.
 Finally click **Start** to send or draft emails.
 
+### Settings
+Default options are stored in `settings.json`. You can update them via the GUI
+by clicking **Save Settings**. The program loads this file on startup to restore
+previously used paths and SMTP details.
+
 ### Cross Platform
 Outlook mode only works on Windows with Outlook installed.
 SMTP mode works on any platform as long as you have network access to your mail server.
