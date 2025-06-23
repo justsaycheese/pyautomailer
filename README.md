@@ -34,7 +34,10 @@ following placeholders which will be replaced when sending:
 - `[salutation]` – replaced with the value from the recipient list.
 - `[statement]` – replaced with a random closing statement.
 - `[image]` – replaced with all selected image (if any images are selected).
-- `[image0]`, `[image1]`, ... – replaced with the first, second, etc. image.
+- `[image1]`, `[image2]`, ... – inserts a specific image by index
+
+ > When using `[image1]`, `[image2]`, etc., make sure you have enough images loaded. 
+ > If an index is out of range, the log will note this issue.
 
 If the RTF content in the template contains bytes that cannot be decoded,
 the program will ignore those bytes to avoid runtime errors.
