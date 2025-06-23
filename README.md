@@ -25,7 +25,7 @@ Create an Excel (`.xlsx`/`.xls`) or CSV file with at least two columns:
 
 Hidden rows in Excel are ignored.
 
-### Exclusion List
+### Exclusion List (choosable)
 Optional Excel/CSV file containing an `Email` column. Any addresses listed
 here will be excluded from the send list.
 
