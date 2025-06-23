@@ -10,6 +10,7 @@ This project provides a GUI tool for sending batches of emails via Outlook or an
   - `openpyxl`
 - `pywin32` (for Outlook mode on Windows)
 - `tkinter` (bundled with Python on Windows)
+- **Be able to read `zh_tw` cuz the hardcoding GUI message.**
 
 Install dependencies with `pip install -r requirements.txt`.
 For SMTP mode no additional Windows packages are required.
