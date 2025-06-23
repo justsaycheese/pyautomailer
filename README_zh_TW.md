@@ -62,3 +62,17 @@ python automailer_verZ.py
 ### 平台限制
 - Outlook 模式僅限 Windows 且需安裝 Outlook。
 - SMTP 模式則無平台限制，只需能連上郵件伺服器。
+
+
+## 範例文本
+```rtf
+[salutation]
+  body1
+[image1]
+  body2
+[image2]
+  body3
+[statement]
+
+  ur name
+```
