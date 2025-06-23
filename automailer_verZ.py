@@ -548,9 +548,8 @@ class GUI:
         self.progress_bar = ttk.Progressbar(root, length=300, mode="determinate")
         self.progress_bar.grid(row=11, column=0, columnspan=2, pady=5)
 
-        Button(root, text="💾 儲存設定", command=self.save_settings).grid(
-            row=12, column=0, columnspan=2, pady=5
-        )
+        self.save_button = Button(root, text="💾 儲存設定", command=self.save_settings)
+        self.save_button.grid(row=12, column=0, columnspan=2, pady=5)
 
     def on_select_mode(self, choice):
         """當 OptionMenu 變動時呼叫；同步更新 folder_mode 與按鈕文字"""
@@ -773,6 +772,7 @@ class GUI:
         self.pause_button.grid()  # 從隱藏狀態恢復
         self.pause_button.config(text="暫停")
         self.cancel_button.grid()  # 從隱藏狀態恢復
+        self.save_button.grid_remove()
 
         # 啟動背景執行緒，傳入 pause_event 和 cancel_event
         threading.Thread(
@@ -853,6 +853,7 @@ class GUI:
         """流程跑完後，把暫停與取消按鈕隱藏掉。"""
         self.pause_button.grid_remove()
         self.cancel_button.grid_remove()
+        self.save_button.grid()
         # 可以更新進度文字表達「已完成」：
         finished_count = last_index + 1 if last_index is not None else total
         self.progress_label.set(f"✅ 全部寄送完成 {finished_count}/{total}")
