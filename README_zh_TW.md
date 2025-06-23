@@ -27,7 +27,7 @@ pip install -r requirements.txt
 在 Excel 中隱藏的列會被忽略。
 
 ### 排除名單
-可選的 Excel/CSV 檔，需含有 `Email` 欄位；其中列出的地址會自動排除。
+可選的 Excel/CSV 檔，需含有 `Email` 欄位；會自動排除excel的Filter未列出的地址。
 
 ### 郵件範本
 使用 Outlook 的 `.msg` 檔作為郵件範本。HTML 內可以使用下列占位符，寄信時會自動替換：
