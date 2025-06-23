@@ -64,3 +64,16 @@ Your settings (accounts, paths, etc.) are saved in `settings.json` and reloaded 
 ### Platform Notes
 - Outlook mode requires Windows with Outlook installed.
 - SMTP mode works cross-platform as long as mail server is reachable.
+
+## Email Sample
+```rtf
+[salutation]
+  body1
+[image1]
+  body2
+[image2]
+  body3
+[statement]
+
+  ur name
+```
