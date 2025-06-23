@@ -42,7 +42,8 @@ from openpyxl import load_workbook
 # ─────────────────────────────
 # ⚙️ Config & Log
 # ─────────────────────────────
-CLOSING_STATEMENTS = [
+# 預設結尾詞清單，不再做為全域變數修改
+DEFAULT_CLOSING_STATEMENTS = [
     "Thanks & Best Regards",
     "Kind Regards",
     "Sincerely",
@@ -273,21 +274,23 @@ def safe_cid(stem: str) -> str:
     clean = re.sub(r'[^A-Za-z0-9_-]+', '_', stem)      # 空白、()、中文 → _
     return f"{uuid.uuid4().hex[:8]}_{clean}"
 
-def load_embeds(embed_dir=None):
+def load_embeds(embed_dir):
+    """載入要嵌入的圖片，回傳 {cid: Path} 的 dict。"""
     if embed_dir is None:
-        embed_dir = get_base_dir() / "embed"
-    embed_dir.mkdir(exist_ok=True)
+        return {}
+    embed_dir = Path(embed_dir)
     return {
-        safe_cid(f.stem): f.resolve()                  # ← 改這行
+        safe_cid(f.stem): f.resolve()
         for f in embed_dir.glob("*")
         if f.suffix.lower() in [".png", ".jpg", ".jpeg", ".gif"]
     }
 
 
-def load_attachments(attachment_dir=None):
+def load_attachments(attachment_dir):
+    """載入附件檔案，回傳 Path list。"""
     if attachment_dir is None:
-        attachment_dir = get_base_dir() / "attachment"
-    attachment_dir.mkdir(exist_ok=True)
+        return []
+    attachment_dir = Path(attachment_dir)
     return [f.resolve() for f in attachment_dir.glob("*") if f.is_file()]
 
 
@@ -512,8 +515,10 @@ class GUI:
         self.closing_text.grid(row=6, column=0, columnspan=2)
         if saved_closing:
             self.closing_text.insert(END, "\n".join(saved_closing))
+            self.closing_statements = saved_closing
         else:
-            self.closing_text.insert(END, "\n".join(CLOSING_STATEMENTS))
+            self.closing_text.insert(END, "\n".join(DEFAULT_CLOSING_STATEMENTS))
+            self.closing_statements = DEFAULT_CLOSING_STATEMENTS
 
         # ─── Pause/Resume 按鈕 & Cancel 按鈕（一開始先放位置，再隱藏） ───
         self.pause_button = Button(
@@ -708,9 +713,8 @@ class GUI:
         self.progress_label.set("")
         self.progress_bar["value"] = 0
 
-        global CLOSING_STATEMENTS
         user_input = self.closing_text.get("1.0", END).strip().splitlines()
-        CLOSING_STATEMENTS = [line.strip() for line in user_input if line.strip()]
+        self.closing_statements = [line.strip() for line in user_input if line.strip()]
         if not self.recipient_file or not self.msg_template:
             messagebox.showerror("錯誤", "請選擇收件人清單和郵件範本")
             return
@@ -721,21 +725,21 @@ class GUI:
         elif self.embed_dir is not None:  # ↖ 資料夾模式
             embedded_images = load_embeds(self.embed_dir)
         else:
-            embedded_images = load_embeds()
+            embedded_images = {}
 
         if self.attachments:  # ↖ 多檔案模式
             real_attachments = self.attachments
         elif self.attachment_dir is not None:  # ↖ 資料夾模式
             real_attachments = load_attachments(self.attachment_dir)
         else:
-            real_attachments = load_attachments()
+            real_attachments = []
 
         embed_list = (
             "\n".join([f"- {cid} → {p.name}" for cid, p in embedded_images.items()])
             or "無"
         )
         attachment_list = "\n".join([f"- {p.name}" for p in real_attachments]) or "無"
-        statement_list = "\n".join(CLOSING_STATEMENTS)
+        statement_list = "\n".join(self.closing_statements)
         if self.backend_var.get() == "Outlook":
             account_disp = self.account_var.get()
         else:
@@ -796,6 +800,7 @@ class GUI:
                 self.smtp_port.get(),
                 self.smtp_user.get(),
                 self.smtp_pass.get(),
+                self.closing_statements,
             ),
             daemon=True,
         ).start()
@@ -880,6 +885,7 @@ def run_automailer(
     smtp_port,
     smtp_user,
     smtp_pass,
+    closing_statements,
 ):
 
     use_outlook = backend_type != "SMTP"
@@ -888,7 +894,6 @@ def run_automailer(
         backend = OutlookBackend(send_account_name)
     else:
         backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
-        backend = OutlookBackend(send_account_name)
 
     try:
         recipients = load_recipients_or_csv(recipients_path, visible_only=True)
@@ -953,7 +958,7 @@ def run_automailer(
         try:
             recipient = row["Email"]
             salutation = row["Salutation"]
-            statement = random.choice(CLOSING_STATEMENTS)
+            statement = random.choice(closing_statements)
 
             body = html_body.replace("[salutation]", salutation).replace(
                 "[statement]", statement
