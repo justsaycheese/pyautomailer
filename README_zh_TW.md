@@ -48,13 +48,14 @@ pip install -r requirements.txt
 python automailer_verZ.py
 ```
 
-啟動後在介面中可選擇 **Outlook** 或 **SMTP** 模式。
-若使用 SMTP，請輸入主機、連接埠與登入資訊，再選擇收件者名單及郵件範本，按下 **Start** 即可寄送或存檔。
+### 操作介面說明
+- 可選 Outlook 或 SMTP 模式寄信
+- 支援圖片及附件資料夾或多檔案載入
+- 寄送模式可選「寄出」或「儲存草稿」
 
-### 設定檔
-程式會讀取根目錄的 `settings.json` 以還原上次使用的路徑與 SMTP 資訊。
-在介面中點選 **儲存設定** 可更新此檔案，下次啟動會自動載入。
+### 設定儲存
+使用者設定（寄件帳號、檔案路徑等）會儲存於 `settings.json`，可透過按鈕儲存，下次開啟自動載入。
 
-### 跨平台說明
-Outlook 模式僅能在安裝 Outlook 的 Windows 系統使用。
-SMTP 模式則可在任何平台運作，只要能連上郵件伺服器。
+### 平台限制
+- Outlook 模式僅限 Windows 且需安裝 Outlook。
+- SMTP 模式則無平台限制，只需能連上郵件伺服器。
