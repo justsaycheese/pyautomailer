@@ -857,11 +857,8 @@ class GUI:
         self.save_button.grid()
         # 可以更新進度文字表達「已完成」：
         finished_count = last_index + 1 if last_index is not None else total
-    use_outlook = backend_type != "SMTP"
-    if use_outlook:
-        pythoncom.CoInitialize()
-    else:
-        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
+        self.progress_label.set(f"✅ 全部寄送完成 {finished_count}/{total}")
+        
 # ─────────────────────────────
 # 🚀 Email Sending Logic
 # ─────────────────────────────
@@ -885,9 +882,12 @@ def run_automailer(
     smtp_pass,
 ):
 
-    if backend_type == "SMTP":
-        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
+    use_outlook = backend_type != "SMTP"
+    if use_outlook:
+        pythoncom.CoInitialize()
+        backend = OutlookBackend(send_account_name)
     else:
+        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
         backend = OutlookBackend(send_account_name)
 
     try:
@@ -965,9 +965,6 @@ def run_automailer(
                     return image_html_all
                 try:
                     cid = cid_list[int(idx)]
-    if use_outlook:
-        pythoncom.CoUninitialize()
-
                 except (ValueError, IndexError):
                     return ""
                 return generate_image_html([cid])
@@ -993,7 +990,9 @@ def run_automailer(
 
     if finish_callback:
         finish_callback(last_index, total)
-
+        
+    if use_outlook:
+        pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     root = Tk()
