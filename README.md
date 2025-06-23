@@ -38,8 +38,10 @@ following placeholders which will be replaced when sending:
 - `[image]` – replaced with all selected image (if any images are selected).
 - `[image1]`, `[image2]`, ... – inserts a specific image by index
 
- > When using `[image1]`, `[image2]`, etc., make sure you have enough images loaded. 
- > If an index is out of range, the log will note this issue.
+ > When using `[image1]`, `[image2]`, etc., make sure you have enough images loaded.
+ >  If an index is out of range, the log will note this issue.
+
+ > If no image selected, the image placeholder will replace with null string.
 
 If the RTF content in the template contains bytes that cannot be decoded,
 the program will ignore those bytes to avoid runtime errors.
