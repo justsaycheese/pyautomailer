@@ -964,10 +964,14 @@ def run_automailer(
                 if idx == "":
                     return image_html_all
                 try:
-                    cid = cid_list[int(idx)]
+                    index = int(idx) - 1  # 讓 [image1] 代表第一張圖
+                    if index < 0:
+                        raise IndexError
+                    cid = cid_list[index]
+                    return generate_image_html([cid])
                 except (ValueError, IndexError):
+                    logger(f"⚠️ 無效的圖片佔位符：[image{idx}] → 找不到對應圖片")
                     return ""
-                return generate_image_html([cid])
 
             body = re.sub(r"\[image(\d*)\]", repl, body)
 
