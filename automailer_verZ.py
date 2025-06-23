@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import json
+import pythoncom
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
@@ -856,9 +857,11 @@ class GUI:
         self.save_button.grid()
         # 可以更新進度文字表達「已完成」：
         finished_count = last_index + 1 if last_index is not None else total
-        self.progress_label.set(f"✅ 全部寄送完成 {finished_count}/{total}")
-
-
+    use_outlook = backend_type != "SMTP"
+    if use_outlook:
+        pythoncom.CoInitialize()
+    else:
+        backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
 # ─────────────────────────────
 # 🚀 Email Sending Logic
 # ─────────────────────────────
@@ -962,6 +965,9 @@ def run_automailer(
                     return image_html_all
                 try:
                     cid = cid_list[int(idx)]
+    if use_outlook:
+        pythoncom.CoUninitialize()
+
                 except (ValueError, IndexError):
                     return ""
                 return generate_image_html([cid])
