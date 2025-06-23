@@ -49,17 +49,14 @@ Execute the GUI with:
 python automailer_verZ.py
 ```
 
-Select your recipient list, optional exclusion list, and message template from
-the interface. You can also choose images to embed and attachments to include.
-Choose **Outlook** or **SMTP** as the backend in the GUI.
-For SMTP you must provide the host, port and credentials.
-Finally click **Start** to send or draft emails.
+### Interface Features
+- Supports Outlook or SMTP
+- Allows loading image/attachment folder or selecting multiple files
+- Choose between "send" and "save draft" modes
 
-### Settings
-Default options are stored in `settings.json`. You can update them via the GUI
-by clicking **Save Settings**. The program loads this file on startup to restore
-previously used paths and SMTP details.
+### Settings Persistence
+Your settings (accounts, paths, etc.) are saved in `settings.json` and reloaded on next launch.
 
-### Cross Platform
-Outlook mode only works on Windows with Outlook installed.
-SMTP mode works on any platform as long as you have network access to your mail server.
+### Platform Notes
+- Outlook mode requires Windows with Outlook installed.
+- SMTP mode works cross-platform as long as mail server is reachable.
