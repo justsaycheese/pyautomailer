@@ -17,6 +17,14 @@
 pip install -r requirements.txt
 ```
 
+## 專案結構
+```
+automailer.py  - 啟動 GUI 的入口檔案
+backend.py     - Outlook 與 SMTP 的寄信後端
+gui.py         - Tkinter 介面與寄送邏輯
+utils.py       - 輔助函式，負責載入資料與組成 HTML
+```
+
 ## 準備資料
 ### 收件者名單
 建立 Excel（`.xlsx`/`.xls`）或 CSV 檔，至少包含兩欄：
