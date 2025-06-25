@@ -48,8 +48,9 @@ pip install -r requirements.txt
 在終端機輸入：
 
 ```bash
-python automailer_verZ.py
+python automailer.py
 ```
+或直接下載並執行已發佈的`.exe`檔
 
 ### 操作介面說明
 - 可選 Outlook 或 SMTP 模式寄信
