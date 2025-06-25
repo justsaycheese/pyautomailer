@@ -16,6 +16,15 @@ This project provides a GUI tool for sending batches of emails via Outlook or an
 Install dependencies with `pip install -r requirements.txt`.
 For SMTP mode no additional Windows packages are required.
 
+## Project Structure
+```
+automailer.py  - entrypoint that launches the GUI
+backend.py     - email backends for Outlook or SMTP
+gui.py         - Tkinter-based interface and sending logic
+utils.py       - helper functions for loading data and generating HTML
+```
+
+
 ## Preparing Data
 ### Recipient List
 Create an Excel (`.xlsx`/`.xls`) or CSV file with at least two columns:
