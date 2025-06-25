@@ -50,8 +50,9 @@ the program will ignore those bytes to avoid runtime errors.
 Execute the GUI with:
 
 ```bash
-python automailer_verZ.py
+python automailer.py
 ```
+Or just download the release `.exe` and execute it.
 
 ### Interface Features
 - Supports Outlook or SMTP
