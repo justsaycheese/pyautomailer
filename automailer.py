@@ -360,6 +360,8 @@ class GUI:
         cfg = load_settings_file()
         self.mode_var.set(cfg.get("mode", self.mode_var.get()))
         self.backend_var.set(cfg.get("backend", self.backend_var.get()))
+        self.select_mode_var.set(cfg.get("select_mode", self.select_mode_var.get()))
+        self.folder_mode = self.select_mode_var.get() == "資料夾"
         acc = cfg.get("account")
         self.account_var.set(acc if acc in accounts else accounts[0])
         self.smtp_host.set(cfg.get("smtp_host", ""))
@@ -375,16 +377,26 @@ class GUI:
         self.msg_template = cfg.get("msg_template", "")
         if self.msg_template:
             self.template_label.set(Path(self.msg_template).name)
-        embed_dir = cfg.get("embed_dir")
-        if embed_dir:
-            self.embed_dir = Path(embed_dir)
-            self.embed_paths = load_embeds(self.embed_dir)
-            self.embed_files.set(", ".join(p.name for p in self.embed_paths.values()) or "無檔案")
-        attachment_dir = cfg.get("attachment_dir")
-        if attachment_dir:
-            self.attachment_dir = Path(attachment_dir)
-            self.attachments = load_attachments(self.attachment_dir)
-            self.attachment_files.set(", ".join(p.name for p in self.attachments) or "無檔案")
+        if self.folder_mode:
+            embed_dir = cfg.get("embed_dir")
+            if embed_dir:
+                self.embed_dir = Path(embed_dir)
+                self.embed_paths = load_embeds(self.embed_dir)
+                self.embed_files.set(", ".join(p.name for p in self.embed_paths.values()) or "無檔案")
+            attachment_dir = cfg.get("attachment_dir")
+            if attachment_dir:
+                self.attachment_dir = Path(attachment_dir)
+                self.attachments = load_attachments(self.attachment_dir)
+                self.attachment_files.set(", ".join(p.name for p in self.attachments) or "無檔案")
+        else:
+            embed_list = cfg.get("embed_files", [])
+            if embed_list:
+                self.embed_paths = {safe_cid(Path(p).stem): Path(p) for p in embed_list}
+                self.embed_files.set(", ".join(Path(p).name for p in embed_list))
+            attach_list = cfg.get("attachment_files", [])
+            if attach_list:
+                self.attachments = [Path(p) for p in attach_list]
+                self.attachment_files.set(", ".join(Path(p).name for p in self.attachments))
         saved_closing = cfg.get("closing_statements")
 
         # ──────────────── UI Frames ────────────────
@@ -834,6 +846,7 @@ class GUI:
             "mode": self.mode_var.get(),
             "backend": self.backend_var.get(),
             "account": self.account_var.get(),
+            "select_mode": self.select_mode_var.get(),
             "smtp_host": self.smtp_host.get(),
             "smtp_port": self.smtp_port.get(),
             "smtp_user": self.smtp_user.get(),
@@ -843,6 +856,8 @@ class GUI:
             "msg_template": self.msg_template,
             "embed_dir": str(self.embed_dir or ""),
             "attachment_dir": str(self.attachment_dir or ""),
+            "embed_files": [str(p) for p in self.embed_paths.values()] if not self.folder_mode else [],
+            "attachment_files": [str(p) for p in self.attachments] if not self.folder_mode else [],
             "closing_statements": self.closing_text.get("1.0", END).strip().splitlines(),
         }
         save_settings_file(data)
