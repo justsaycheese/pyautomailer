@@ -574,11 +574,36 @@ class GUI:
         self.folder_mode = choice == "資料夾"  # True=資料夾模式
 
         if self.folder_mode:
+            # ── 切到「資料夾」──
+            # 清掉多檔案模式用到的屬性
+            self.embed_paths.clear()
+            self.attachments.clear()
+            # 也把顯示文字歸零
+            self.embed_files.set("尚未選擇")
+            self.attachment_files.set("尚未選擇")
+            # 同時把舊的資料夾路徑重置，讓使用者重新選
+            self.embed_dir = None
+            self.attachment_dir = None
+
+            # 更新按鈕文字
             self.embed_btn.config(text="🖼 選擇圖片資料夾")
             self.attachment_btn.config(text="📎 選擇附件資料夾")
         else:
+            # ── 切到「多檔案」──
+            # 清掉資料夾模式遺留的屬性
+            self.embed_dir = None
+            self.attachment_dir = None
+            # 同步把顯示文字歸零
+            self.embed_files.set("尚未選擇")
+            self.attachment_files.set("尚未選擇")
+            # 也把多檔案內容清空（防止舊清單殘留）
+            self.embed_paths.clear()
+            self.attachments.clear()
+
+            # 更新按鈕文字
             self.embed_btn.config(text="🖼 選擇圖片檔案")
             self.attachment_btn.config(text="📎 選擇附件檔案")
+            self.log(f"🔀 已切換到 «{choice}» 模式")
 
     def on_backend_change(self, choice):
         """切換寄信後端時顯示或隱藏 SMTP 設定欄位"""
@@ -854,12 +879,18 @@ class GUI:
             "recipient_file": self.recipient_file,
             "exclusion_file": self.exclusion_file,
             "msg_template": self.msg_template,
-            "embed_dir": str(self.embed_dir or ""),
-            "attachment_dir": str(self.attachment_dir or ""),
-            "embed_files": [str(p) for p in self.embed_paths.values()] if not self.folder_mode else [],
-            "attachment_files": [str(p) for p in self.attachments] if not self.folder_mode else [],
             "closing_statements": self.closing_text.get("1.0", END).strip().splitlines(),
         }
+                # 根據目前的「選取模式」決定要寫哪一組鍵
+        if self.folder_mode:
+            # ㈠ 資料夾模式 → 只保留 _dir，完全省略 *_files
+            data["embed_dir"] = str(self.embed_dir or "")
+            data["attachment_dir"] = str(self.attachment_dir or "")
+        else:
+            # ㈡ 多檔案模式 → 只保留 *_files，完全省略 _dir
+            data["embed_files"] = [str(p) for p in self.embed_paths.values()]
+            data["attachment_files"] = [str(p) for p in self.attachments]
+            
         save_settings_file(data)
         self.log("✅ 設定已儲存")
         messagebox.showinfo("設定", "設定已儲存")
