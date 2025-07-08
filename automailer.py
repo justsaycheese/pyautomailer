@@ -76,6 +76,9 @@ def patch_rtfde_decode() -> None:
 
 patch_rtfde_decode()
 
+# Excel 全表識別
+ALL_SHEETS = "整本活頁簿"
+
 # ─────────────────────────────
 # 📨 Backend Classes
 # ─────────────────────────────
@@ -211,23 +214,50 @@ class SmtpBackend(EmailBackend):
 # ─────────────────────────────
 # 📂 Utils
 # ─────────────────────────────
-def load_recipients_or_csv(file_path, visible_only=False):
+
+def get_excel_sheets(file_path: str) -> list[str]:
+    """取得 Excel 檔案的所有工作表名稱。若非 Excel 則回傳空清單。"""
+    if Path(file_path).suffix.lower() in [".xls", ".xlsx"]:
+        try:
+            wb = load_workbook(file_path, read_only=True)
+            return wb.sheetnames
+        except Exception:
+            return []
+    return []
+
+
+def load_recipients_or_csv(file_path, visible_only=False, sheet_name=None):
     ext = Path(file_path).suffix.lower()
     if ext == ".csv":
         df = pd.read_csv(file_path)
     elif ext in [".xls", ".xlsx"]:
         if not visible_only:
-            df = pd.read_excel(file_path)
+            if sheet_name == ALL_SHEETS:
+                xls = pd.ExcelFile(file_path)
+                df_list = [pd.read_excel(xls, sh) for sh in xls.sheet_names]
+                df = pd.concat(df_list, ignore_index=True)
+            else:
+                df = pd.read_excel(file_path, sheet_name=sheet_name)
         else:
             wb = load_workbook(file_path, data_only=True)
-            ws = wb.active
-            headers = [cell.value for cell in ws[1]]
-            visible_rows = [
-                [cell.value for cell in row]
-                for row in ws.iter_rows(min_row=2)
-                if not ws.row_dimensions[row[0].row].hidden
-            ]
-            df = pd.DataFrame(visible_rows, columns=headers)
+            sheets = (
+                wb.sheetnames
+                if sheet_name == ALL_SHEETS
+                else [sheet_name or wb.sheetnames[0]]
+            )
+            all_rows = []
+            headers = None
+            for sh in sheets:
+                ws = wb[sh]
+                if headers is None:
+                    headers = [cell.value for cell in ws[1]]
+                visible_rows = [
+                    [cell.value for cell in row]
+                    for row in ws.iter_rows(min_row=2)
+                    if not ws.row_dimensions[row[0].row].hidden
+                ]
+                all_rows.extend(visible_rows)
+            df = pd.DataFrame(all_rows, columns=headers)
     else:
         raise ValueError(f"Unsupported file type: {file_path}")
 
@@ -326,6 +356,8 @@ class GUI:
         self.folder_mode = True  # 與前保持一致的布林旗標
         self.embed_paths = {}  # 字典
         self.attachments = []
+        self.recipient_sheet_var = StringVar(value=ALL_SHEETS)
+        self.exclusion_sheet_var = StringVar(value=ALL_SHEETS)
 
         # 進度文字和 Progressbar
         self.progress_label = StringVar(value="")
@@ -371,9 +403,11 @@ class GUI:
         self.recipient_file = cfg.get("recipient_file", "")
         if self.recipient_file:
             self.recipient_label.set(Path(self.recipient_file).name)
+        self.recipient_sheet_var.set(cfg.get("recipient_sheet", ALL_SHEETS))
         self.exclusion_file = cfg.get("exclusion_file", "")
         if self.exclusion_file:
             self.exclusion_label.set(Path(self.exclusion_file).name)
+        self.exclusion_sheet_var.set(cfg.get("exclusion_sheet", ALL_SHEETS))
         self.msg_template = cfg.get("msg_template", "")
         if self.msg_template:
             self.template_label.set(Path(self.msg_template).name)
@@ -493,6 +527,11 @@ class GUI:
             wraplength=270,
             justify="left",
         ).grid(row=0, column=1, sticky="W")
+        self.recipient_sheet_menu = OptionMenu(
+            choose_frame, self.recipient_sheet_var, self.recipient_sheet_var.get()
+        )
+        self.recipient_sheet_menu.config(width=8)
+        self.recipient_sheet_menu.grid(row=0, column=2, sticky="W")
         Button(
             choose_frame, text="🚫 選擇排除清單", command=self.load_exclusions, width=20
         ).grid(row=1, column=0, pady=5)
@@ -502,6 +541,24 @@ class GUI:
             wraplength=270,
             justify="left",
         ).grid(row=1, column=1, sticky="W")
+        self.exclusion_sheet_menu = OptionMenu(
+            choose_frame, self.exclusion_sheet_var, self.exclusion_sheet_var.get()
+        )
+        self.exclusion_sheet_menu.config(width=8)
+        self.exclusion_sheet_menu.grid(row=1, column=2, sticky="W")
+
+        if self.recipient_file:
+            self.update_sheet_menu(
+                self.recipient_sheet_menu,
+                self.recipient_sheet_var,
+                get_excel_sheets(self.recipient_file),
+            )
+        if self.exclusion_file:
+            self.update_sheet_menu(
+                self.exclusion_sheet_menu,
+                self.exclusion_sheet_var,
+                get_excel_sheets(self.exclusion_file),
+            )
         Button(
             choose_frame,
             text="✉ 選擇郵件範本",
@@ -659,6 +716,13 @@ class GUI:
         self.attachment_files.set(", ".join(file_names) or "無檔案")
         self.log(f"✅ 已載入 {len(self.attachments)} 個附件")
 
+    def update_sheet_menu(self, menu, var, sheets):
+        menu["menu"].delete(0, "end")
+        options = [ALL_SHEETS] + sheets if sheets else [ALL_SHEETS]
+        for s in options:
+            menu["menu"].add_command(label=s, command=lambda v=s: var.set(v))
+        var.set(ALL_SHEETS)
+
     def load_recipients(self):
         path = filedialog.askopenfilename(
             filetypes=[("Excel/CSV Files", "*.xlsx *.xls *.csv")]
@@ -666,6 +730,8 @@ class GUI:
         if path:
             self.recipient_file = path
             self.recipient_label.set(Path(path).name)
+            sheets = get_excel_sheets(path)
+            self.update_sheet_menu(self.recipient_sheet_menu, self.recipient_sheet_var, sheets)
 
     def load_exclusions(self):
         path = filedialog.askopenfilename(
@@ -674,6 +740,8 @@ class GUI:
         if path:
             self.exclusion_file = path
             self.exclusion_label.set(Path(path).name)
+            sheets = get_excel_sheets(path)
+            self.update_sheet_menu(self.exclusion_sheet_menu, self.exclusion_sheet_var, sheets)
 
     def load_msg_template(self):
         path = filedialog.askopenfilename(filetypes=[("MSG Files", "*.msg")])
@@ -823,6 +891,8 @@ class GUI:
                 self.mode_var.get(),
                 self.recipient_file,
                 self.exclusion_file,
+                self.recipient_sheet_var.get(),
+                self.exclusion_sheet_var.get(),
                 self.msg_template,
                 self.update_progress,
                 self.log,
@@ -878,6 +948,8 @@ class GUI:
             "smtp_pass": self.smtp_pass.get(),
             "recipient_file": self.recipient_file,
             "exclusion_file": self.exclusion_file,
+            "recipient_sheet": self.recipient_sheet_var.get(),
+            "exclusion_sheet": self.exclusion_sheet_var.get(),
             "msg_template": self.msg_template,
             "closing_statements": self.closing_text.get("1.0", END).strip().splitlines(),
         }
@@ -917,6 +989,8 @@ def run_automailer(
     mode,
     recipients_path,
     exclusion_path,
+    recipients_sheet,
+    exclusion_sheet,
     msg_template_path,
     progress_update,
     logger,
@@ -942,7 +1016,11 @@ def run_automailer(
         backend = SmtpBackend(smtp_host, int(smtp_port or 0), smtp_user, smtp_pass)
 
     try:
-        recipients = load_recipients_or_csv(recipients_path, visible_only=True)
+        recipients = load_recipients_or_csv(
+            recipients_path,
+            visible_only=True,
+            sheet_name=recipients_sheet if recipients_sheet != ALL_SHEETS else ALL_SHEETS,
+        )
         validate_recipient_columns(recipients)
     except ValueError as e:
         messagebox.showerror("檔案錯誤", str(e))
@@ -953,7 +1031,9 @@ def run_automailer(
     exclusion_emails = []
     if exclusion_path and os.path.exists(exclusion_path):
         try:
-            exclusion_df = load_recipients_or_csv(exclusion_path)
+            exclusion_df = load_recipients_or_csv(
+                exclusion_path, sheet_name=exclusion_sheet if exclusion_sheet != ALL_SHEETS else ALL_SHEETS
+            )
             exclusion_emails = exclusion_df["Email"].tolist()
         except Exception as e:
             logger(f"排除清單讀取失敗: {e}")
